@@ -1,0 +1,106 @@
+/* Floating prominent "追蹤修訂中" indicator */
+.tc-floating-indicator {
+  position: fixed;
+  top: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(185, 28, 28, 0.92);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 20px rgba(185, 28, 28, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  user-select: none;
+  pointer-events: auto;
+}
+
+.tc-floating-indicator.tc-hidden {
+  display: none;
+}
+
+.tc-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fde047;
+  box-shadow: 0 0 8px #fde047;
+  animation: tc-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tc-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+}
+
+.tc-indicator-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.tc-indicator-btn {
+  appearance: none;
+  border: none;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.tc-indicator-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.tc-indicator-btn.tc-btn-close {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 4px 9px;
+}
+
+.tc-indicator-btn.tc-btn-close:hover {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* Inline CodeMirror decorations for ++additions++ and %%~~deletions~~%% */
+.cm-tc-ins {
+  background-color: rgba(34, 197, 94, 0.16);
+  text-decoration: underline;
+  text-decoration-color: rgba(22, 163, 74, 0.75);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+  border-radius: 2px;
+}
+
+.cm-tc-del {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(220, 38, 38, 0.85);
+  text-decoration-thickness: 1.5px;
+  border-radius: 2px;
+}
+
+.cm-tc-marker {
+  opacity: 0.45;
+  font-size: 0.9em;
+}

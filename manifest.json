@@ -1,0 +1,10 @@
+{
+  "id": "track-changes",
+  "name": "Track Changes (追蹤修訂)",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Track Changes mode for Live Preview and Source Mode using ++additions++ and %%~~deletions~~%%.",
+  "author": "GHSRobert 江瑋平／愛灣語",
+  "authorUrl": "https://github.com/GHSRobert",
+  "isDesktopOnly": false
+}

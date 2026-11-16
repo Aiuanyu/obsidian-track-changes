@@ -1,0 +1,29 @@
+{
+  "name": "obsidian-track-changes",
+  "version": "1.0.0",
+  "description": "Track Changes mode for Obsidian Live Preview and Source Mode using ++additions++ and %%~~deletions~~%%.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+  },
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "track-changes",
+    "markdown",
+    "revision"
+  ],
+  "author": "GHSRobert 江瑋平／愛灣語",
+  "license": "MIT",
+  "devDependencies": {
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/view": "^6.26.0",
+    "@types/node": "^22.0.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.23.0",
+    "obsidian": "latest",
+    "tslib": "^2.6.3",
+    "typescript": "^5.4.5"
+  }
+}
