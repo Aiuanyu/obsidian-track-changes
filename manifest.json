@@ -1,6 +1,6 @@
 {
-  "id": "track-changes",
-  "name": "Track Changes (追蹤修訂)",
+  "id": "simple-track-changes",
+  "name": "Simple Track Changes (追蹤修訂)",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
   "description": "Track Changes mode for Live Preview and Source Mode using ++additions++ and %%~~deletions~~%%.",
