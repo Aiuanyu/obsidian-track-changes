@@ -7,7 +7,13 @@ import { createImeHandler } from "./imeHandler";
 import { FloatingTrackIndicator } from "./indicator";
 import { TrackChangesSettingTab } from "./settings";
 import { createTrackChangesTransactionFilter } from "./transactionFilter";
-import { DEFAULT_SETTINGS, TrackChangesSettings } from "./types";
+import {
+  AdditionDelimiters,
+  DEFAULT_SETTINGS,
+  INS_DELIMITERS,
+  PLUS_DELIMITERS,
+  TrackChangesSettings,
+} from "./types";
 
 export default class TrackChangesPlugin extends Plugin {
   settings: TrackChangesSettings = { ...DEFAULT_SETTINGS };
@@ -45,9 +51,15 @@ export default class TrackChangesPlugin extends Plugin {
       return cm ? cm.state === state : false;
     };
 
+    const getDelimiters = () => this.getAdditionDelimiters();
+
     this.registerEditorExtension([
-      createTrackChangesTransactionFilter(isTrackingActiveForState, () => this.settings),
-      createImeHandler(isTrackingActiveForState),
+      createTrackChangesTransactionFilter(
+        isTrackingActiveForState,
+        () => this.settings,
+        getDelimiters
+      ),
+      createImeHandler(isTrackingActiveForState, getDelimiters),
       createTrackChangesDecorations(() => this.settings),
     ]);
 
@@ -219,7 +231,21 @@ export default class TrackChangesPlugin extends Plugin {
     this.indicator.setVisible(shouldShow);
   }
 
+  isExtendedMarkdownSyntaxEnabled(): boolean {
+    const plugins = (
+      this.app as unknown as { plugins?: { enabledPlugins?: Set<string> } }
+    ).plugins;
+    return plugins?.enabledPlugins?.has("extended-markdown-syntax") ?? false;
+  }
+
+  getAdditionDelimiters(): AdditionDelimiters {
+    if (this.settings.additionSyntax === "plus") return PLUS_DELIMITERS;
+    if (this.settings.additionSyntax === "ins") return INS_DELIMITERS;
+    return this.isExtendedMarkdownSyntaxEnabled() ? PLUS_DELIMITERS : INS_DELIMITERS;
+  }
+
   private getCmFromView(view: MarkdownView): EditorView | null {
+    // Access internal CodeMirror 6 EditorView attached to Obsidian's MarkdownView editor.
     const editor = view.editor as unknown as { cm?: EditorView };
     return editor?.cm ?? null;
   }

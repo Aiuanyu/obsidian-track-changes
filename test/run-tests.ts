@@ -2,16 +2,27 @@ import assert from "node:assert/strict";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { findTrackedSpans, isInsideTrackedMarkup } from "../src/parser";
 import { createTrackChangesTransactionFilter } from "../src/transactionFilter";
-import { DEFAULT_SETTINGS } from "../src/types";
+import {
+  AdditionDelimiters,
+  DEFAULT_SETTINGS,
+  INS_DELIMITERS,
+  PLUS_DELIMITERS,
+} from "../src/types";
 
-function createState(doc: string, anchor: number, head = anchor) {
+function createState(
+  doc: string,
+  anchor: number,
+  head = anchor,
+  delimiters: AdditionDelimiters = PLUS_DELIMITERS
+) {
   return EditorState.create({
     doc,
     selection: EditorSelection.range(anchor, head),
     extensions: [
       createTrackChangesTransactionFilter(
         () => true,
-        () => ({ ...DEFAULT_SETTINGS })
+        () => ({ ...DEFAULT_SETTINGS }),
+        () => delimiters
       ),
     ],
   });
@@ -143,4 +154,46 @@ function createState(doc: string, anchor: number, head = anchor) {
   assert.equal(isInsideTrackedMarkup(spans, 12), false);
 }
 
-console.log("All 10 Track Changes test suites passed!");
+// 11. Fallback <ins>...</ins> mode: typing, continuing inside, smart boundary delete, and cleanup
+{
+  let s = createState("hello ", 6, 6, INS_DELIMITERS);
+  s = s.update({
+    changes: { from: 6, to: 6, insert: "w" },
+    userEvent: "input.type",
+  }).state;
+  assert.equal(s.doc.toString(), "hello <ins>w</ins>");
+  assert.equal(s.selection.main.head, 12); // right before </ins>
+
+  s = s.update({
+    changes: { from: 12, to: 12, insert: "o" },
+    userEvent: "input.type",
+  }).state;
+  assert.equal(s.doc.toString(), "hello <ins>wo</ins>");
+
+  // Backspace right after `hello <ins>wo</ins>|` deletes `o`, not `>`
+  s = EditorState.create({
+    doc: "hello <ins>wo</ins>",
+    selection: EditorSelection.cursor(19),
+    extensions: [
+      createTrackChangesTransactionFilter(
+        () => true,
+        () => ({ ...DEFAULT_SETTINGS }),
+        () => INS_DELIMITERS
+      ),
+    ],
+  });
+  s = s.update({
+    changes: { from: 18, to: 19, insert: "" },
+    userEvent: "delete.backward",
+  }).state;
+  assert.equal(s.doc.toString(), "hello <ins>w</ins>");
+
+  // Deleting last char inside <ins>w</ins> cleans up empty <ins></ins>
+  s = s.update({
+    changes: { from: 11, to: 12, insert: "" },
+    userEvent: "delete.backward",
+  }).state;
+  assert.equal(s.doc.toString(), "hello ");
+}
+
+console.log("All 11 Track Changes test suites passed!");

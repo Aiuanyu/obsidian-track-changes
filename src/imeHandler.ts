@@ -1,14 +1,22 @@
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { findTrackedSpans, getEnclosingSpan, isInsideTrackedMarkup } from "./parser";
-import { trackChangesIgnore } from "./types";
+import {
+  findTrackedSpans,
+  getEditableBounds,
+  getEnclosingSpan,
+  isInsideTrackedMarkup,
+} from "./parser";
+import { AdditionDelimiters, trackChangesIgnore } from "./types";
 
 interface PendingCompose {
   from: number;
   deletedMarkup: string;
 }
 
-export function createImeHandler(isTrackingActive: (state: EditorState) => boolean) {
+export function createImeHandler(
+  isTrackingActive: (state: EditorState) => boolean,
+  getDelimiters: () => AdditionDelimiters
+) {
   return ViewPlugin.fromClass(
     class {
       private pending: PendingCompose | null = null;
@@ -42,7 +50,7 @@ export function createImeHandler(isTrackingActive: (state: EditorState) => boole
         }
 
         const enclosing = getEnclosingSpan(spans, sel.from);
-        if (enclosing && sel.to <= enclosing.to - 2) {
+        if (enclosing && sel.to <= getEditableBounds(enclosing).end) {
           this.pending = null;
           return;
         }
@@ -59,7 +67,6 @@ export function createImeHandler(isTrackingActive: (state: EditorState) => boole
         this.pending = null;
         if (!pending) return;
 
-        // Wait one tick so CodeMirror finishes flushing its compositionend transaction.
         window.setTimeout(() => {
           if (!isTrackingActive(this.view.state)) return;
 
@@ -71,11 +78,13 @@ export function createImeHandler(isTrackingActive: (state: EditorState) => boole
             return;
           }
 
-          const wrappedIns = composedText.length > 0 ? `++${composedText}++` : "";
+          const delimiters = getDelimiters();
+          const wrappedIns =
+            composedText.length > 0 ? `${delimiters.open}${composedText}${delimiters.close}` : "";
           const replacement = pending.deletedMarkup + wrappedIns;
           const cursorPos =
             composedText.length > 0
-              ? pending.from + replacement.length - 2
+              ? pending.from + replacement.length - delimiters.close.length
               : pending.from + replacement.length;
 
           this.view.dispatch({
