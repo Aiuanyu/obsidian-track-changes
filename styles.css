@@ -104,3 +104,181 @@
   opacity: 0.45;
   font-size: 0.9em;
 }
+
+/* Collapsed deletion anchor in Live Preview (Word-style sidenote mode) */
+.cm-tc-del-anchor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: 8px;
+  height: 1.15em;
+  margin: 0 1px;
+  cursor: pointer;
+  position: relative;
+}
+
+.cm-tc-del-anchor-bar {
+  width: 2px;
+  height: 100%;
+  border-radius: 2px;
+  background: rgba(220, 38, 38, 0.85);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.22);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.cm-tc-del-anchor::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid rgba(220, 38, 38, 0.9);
+}
+
+.cm-tc-del-anchor:hover .cm-tc-del-anchor-bar,
+.cm-tc-del-anchor.tc-active .cm-tc-del-anchor-bar {
+  transform: scaleX(1.6);
+  background: #dc2626;
+}
+
+/* Reserve right margin in .markdown-source-view when natural margin is too narrow */
+.markdown-source-view.tc-reserve-right .cm-sizer {
+  padding-right: 124px !important;
+}
+
+/* Right-side sidenote overlay & SVG leader lines */
+.markdown-source-view {
+  position: relative;
+}
+
+.tc-sidenote-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.tc-sidenote-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tc-sidenote-line {
+  fill: none;
+  stroke: rgba(220, 38, 38, 0.45);
+  stroke-width: 0.75;
+  stroke-dasharray: 2.5 2;
+  stroke-linejoin: round;
+  transition: stroke 0.12s ease, stroke-width 0.12s ease;
+}
+
+.tc-sidenote-line.tc-active {
+  stroke: rgba(220, 38, 38, 0.95);
+  stroke-width: 1.25;
+  stroke-dasharray: none;
+}
+
+.tc-sidenote-dot {
+  fill: rgba(220, 38, 38, 0.8);
+  transition: r 0.12s ease, fill 0.12s ease;
+}
+
+.tc-sidenote-dot.tc-active {
+  fill: #dc2626;
+}
+
+.tc-sidenote-cards {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tc-sidenote-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  border-radius: 5px;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  border-left: 2.5px solid rgba(220, 38, 38, 0.85);
+  background: var(--background-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-size: 11px;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.tc-sidenote-card:hover,
+.tc-sidenote-card.tc-active {
+  border-color: rgba(220, 38, 38, 0.85);
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.16);
+}
+
+.tc-sidenote-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+
+.tc-sidenote-badge {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #dc2626;
+  letter-spacing: 0.02em;
+}
+
+.tc-sidenote-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tc-sidenote-btn {
+  appearance: none;
+  border: none;
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  width: 17px;
+  height: 15px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.tc-sidenote-btn.tc-btn-accept:hover {
+  background: rgba(22, 163, 74, 0.2);
+  color: #16a34a;
+}
+
+.tc-sidenote-btn.tc-btn-reject:hover {
+  background: rgba(220, 38, 38, 0.2);
+  color: #dc2626;
+}
+
+.tc-sidenote-body {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(220, 38, 38, 0.65);
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-height: 96px;
+  overflow-y: auto;
+}

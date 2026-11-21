@@ -1,7 +1,8 @@
-import { Annotation } from "@codemirror/state";
+import { Annotation, StateEffect } from "@codemirror/state";
 
 export type SpanKind = "addition" | "deletion" | "comment";
 export type AdditionSyntaxMode = "auto" | "plus" | "ins";
+export type DeletionDisplayMode = "inline" | "sidenote";
 
 export interface AdditionDelimiters {
   open: string;
@@ -31,6 +32,8 @@ export interface TrackChangesSettings {
   mergeAdjacentMarkers: boolean;
   /** Whether to render color decorations in Live Preview / Source Mode. */
   showInlineDecorations: boolean;
+  /** How deletions are displayed: inline strikethrough or right-side Word-style sidenote balloons. */
+  deletionDisplayMode: DeletionDisplayMode;
   /** Whether to skip delimiter markers cleanly on Backspace / Delete at boundaries. */
   smartBoundaryDelete: boolean;
 }
@@ -39,6 +42,7 @@ export const DEFAULT_SETTINGS: TrackChangesSettings = {
   additionSyntax: "auto",
   mergeAdjacentMarkers: true,
   showInlineDecorations: true,
+  deletionDisplayMode: "sidenote",
   smartBoundaryDelete: true,
 };
 
@@ -50,3 +54,8 @@ export const INS_DELIMITERS: AdditionDelimiters = { open: "<ins>", close: "</ins
  * (e.g. for Accept/Reject actions or IME composition commit).
  */
 export const trackChangesIgnore = Annotation.define<boolean>();
+
+/**
+ * StateEffect dispatched when plugin settings change to force decoration rebuilds.
+ */
+export const refreshDecorationsEffect = StateEffect.define<null>();

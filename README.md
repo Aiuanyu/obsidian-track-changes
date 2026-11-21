@@ -1,4 +1,4 @@
-# Track Changes (追蹤修訂) for Obsidian
+# Simple Track Changes
 
 Track Changes mode for Obsidian **Live Preview** and **Source Mode** using `++additions++` (or `<ins>additions</ins>` fallback) and `%%~~deletions~~%%`.
 

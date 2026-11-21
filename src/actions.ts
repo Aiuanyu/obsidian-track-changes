@@ -10,6 +10,22 @@ function getReplacementForSpan(docText: string, span: TrackedSpan, action: "acce
   return span.kind === "deletion" ? docText.slice(span.innerFrom, span.innerTo) : "";
 }
 
+export function applyActionToSpan(
+  view: EditorView,
+  span: TrackedSpan,
+  action: "accept" | "reject",
+  scrollIntoView = false
+): void {
+  const docText = view.state.doc.toString();
+  const replacement = getReplacementForSpan(docText, span, action);
+  view.dispatch({
+    changes: { from: span.from, to: span.to, insert: replacement },
+    selection: EditorSelection.cursor(span.from + replacement.length),
+    annotations: trackChangesIgnore.of(true),
+    scrollIntoView,
+  });
+}
+
 export function applyActionAtCursor(view: EditorView, action: "accept" | "reject"): boolean {
   const docText = view.state.doc.toString();
   const spans = findTrackedSpans(docText);
@@ -17,13 +33,7 @@ export function applyActionAtCursor(view: EditorView, action: "accept" | "reject
   const span = findActionableSpanAt(spans, head);
   if (!span) return false;
 
-  const replacement = getReplacementForSpan(docText, span, action);
-  view.dispatch({
-    changes: { from: span.from, to: span.to, insert: replacement },
-    selection: EditorSelection.cursor(span.from + replacement.length),
-    annotations: trackChangesIgnore.of(true),
-    scrollIntoView: true,
-  });
+  applyActionToSpan(view, span, action, true);
   return true;
 }
 
