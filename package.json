@@ -1,6 +1,6 @@
 {
   "name": "obsidian-track-changes",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Track Changes mode for Obsidian Live Preview and Source Mode using ++additions++ and %%~~deletions~~%%.",
   "main": "main.js",
   "scripts": {

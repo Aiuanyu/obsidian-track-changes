@@ -237,6 +237,18 @@ export class SidenoteManager {
       columnWidth = Math.min(130, naturalRightSpace - 18);
     }
 
+    // Collect Live Preview table widget ranges so outer spans inside tables don't use bogus outer coordsAtPos().
+    const tableWidgets: Array<{ from: number; to: number; el: HTMLElement }> = [];
+    sourceViewEl.querySelectorAll<HTMLElement>(".cm-table-widget").forEach((tableEl) => {
+      try {
+        const pos = outerCm.posAtDOM(tableEl);
+        const block = outerCm.lineBlockAt(pos);
+        tableWidgets.push({ from: block.from, to: block.to, el: tableEl });
+      } catch {
+        // Ignore detached or unmapped table widgets.
+      }
+    });
+
     // Collect visible deletion items with anchor coordinates.
     const items: SidenoteItem[] = [];
     const anchorElsByFrom = new Map<number, HTMLElement>();
@@ -249,6 +261,29 @@ export class SidenoteManager {
     });
 
     for (const span of outerDeletions) {
+      const tableWidget = tableWidgets.find((tw) => span.from >= tw.from && span.to <= tw.to);
+      if (tableWidget) {
+        const cellEl = this.findTableCellForSpan(docText, tableWidget, span.from);
+        if (!cellEl) continue;
+        // If this cell currently has a mounted nested EditorView, the nested view loop below will handle it.
+        if (cellEl.querySelector(".cm-editor")) continue;
+
+        const r = cellEl.getBoundingClientRect();
+        const anchorX = r.right - containerRect.left - 4;
+        const anchorY = (r.top + r.bottom) / 2 - containerRect.top;
+        if (anchorY < -80 || anchorY > containerRect.height + 80) continue;
+
+        items.push({
+          key: `outer:${span.from}`,
+          targetCm: outerCm,
+          span,
+          deletedText: docText.slice(span.innerFrom, span.innerTo),
+          anchorX,
+          anchorY,
+        });
+        continue;
+      }
+
       const anchorEl = anchorElsByFrom.get(span.from);
       let anchorX: number | null = null;
       let anchorY: number | null = null;
@@ -279,35 +314,52 @@ export class SidenoteManager {
       });
     }
 
-    // Also include collapsed deletion anchors inside Live Preview table cells.
-    sourceViewEl.querySelectorAll<HTMLElement>(".cm-table-widget .cm-tc-del-anchor").forEach((el) => {
-      const cellCm = EditorView.findFromDOM(el);
-      if (!cellCm) return;
-      const from = Number(el.dataset.tcFrom);
-      const to = Number(el.dataset.tcTo);
-      if (Number.isNaN(from) || Number.isNaN(to)) return;
-
+    // Also include deletions inside mounted nested EditorViews (e.g. focused Live Preview table cells).
+    for (const cellCm of this.getKnownViews()) {
+      if (cellCm === outerCm || !sourceViewEl.contains(cellCm.dom)) continue;
       const cellDoc = cellCm.state.doc.toString();
-      const cellSpan = findTrackedSpans(cellDoc).find(
-        (s) => s.kind === "deletion" && s.from === from && s.to === to
-      );
-      if (!cellSpan) return;
+      const cellDeletions = findTrackedSpans(cellDoc).filter((s) => s.kind === "deletion");
+      if (cellDeletions.length === 0) continue;
 
-      const r = el.getBoundingClientRect();
-      const anchorX = r.right - containerRect.left;
-      const anchorY = (r.top + r.bottom) / 2 - containerRect.top;
-      if (anchorY < -80 || anchorY > containerRect.height + 80) return;
-
-      items.push({
-        key: `cell:${from}:${Math.round(anchorY)}`,
-        targetCm: cellCm,
-        span: cellSpan,
-        deletedText: cellDoc.slice(cellSpan.innerFrom, cellSpan.innerTo),
-        anchorX,
-        anchorY,
-        anchorEl: el,
+      const cellAnchors = new Map<number, HTMLElement>();
+      cellCm.dom.querySelectorAll<HTMLElement>(".cm-tc-del-anchor").forEach((el) => {
+        const from = Number(el.dataset.tcFrom);
+        if (!Number.isNaN(from)) {
+          cellAnchors.set(from, el);
+        }
       });
-    });
+
+      for (const cellSpan of cellDeletions) {
+        const anchorEl = cellAnchors.get(cellSpan.from);
+        let anchorX: number | null = null;
+        let anchorY: number | null = null;
+
+        if (anchorEl) {
+          const r = anchorEl.getBoundingClientRect();
+          anchorX = r.right - containerRect.left;
+          anchorY = (r.top + r.bottom) / 2 - containerRect.top;
+        } else {
+          const coords = cellCm.coordsAtPos(cellSpan.from);
+          if (coords) {
+            anchorX = coords.left - containerRect.left;
+            anchorY = (coords.top + coords.bottom) / 2 - containerRect.top;
+          }
+        }
+
+        if (anchorX === null || anchorY === null) continue;
+        if (anchorY < -80 || anchorY > containerRect.height + 80) continue;
+
+        items.push({
+          key: `cell:${cellSpan.from}:${Math.round(anchorY)}`,
+          targetCm: cellCm,
+          span: cellSpan,
+          deletedText: cellDoc.slice(cellSpan.innerFrom, cellSpan.innerTo),
+          anchorX,
+          anchorY,
+          anchorEl,
+        });
+      }
+    }
 
     items.sort((a, b) => a.anchorY - b.anchorY || a.span.from - b.span.from);
 
@@ -366,9 +418,55 @@ export class SidenoteManager {
       svgFragment.appendChild(dot);
     }
     svgEl.replaceChildren(svgFragment);
+  }
 
-    // Unused helper reference check: keep knownViews accessible if needed later.
-    void this.getKnownViews;
+  private findTableCellForSpan(
+    docText: string,
+    tableWidget: { from: number; to: number; el: HTMLElement },
+    spanFrom: number
+  ): HTMLElement | null {
+    const relOffset = spanFrom - tableWidget.from;
+    if (relOffset < 0) return null;
+
+    const tableText = docText.slice(tableWidget.from, tableWidget.to);
+    const lines = tableText.split("\n");
+    let cursor = 0;
+    let lineIdx = -1;
+    let offsetInLine = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const lineLen = lines[i].length;
+      if (relOffset <= cursor + lineLen) {
+        lineIdx = i;
+        offsetInLine = relOffset - cursor;
+        break;
+      }
+      cursor += lineLen + 1;
+    }
+
+    if (lineIdx === -1 || lineIdx === 1) return null;
+
+    const line = lines[lineIdx];
+    const trimmed = line.trimStart();
+    const startsWithPipe = trimmed.startsWith("|");
+    let pipes = 0;
+    for (let i = 0; i < offsetInLine; i++) {
+      if (line[i] === "|" && (i === 0 || line[i - 1] !== "\\")) {
+        pipes++;
+      }
+    }
+    const colIndex = Math.max(0, startsWithPipe ? pipes - 1 : pipes);
+
+    let rowEl: Element | null = null;
+    if (lineIdx === 0) {
+      rowEl = tableWidget.el.querySelector("thead tr");
+    } else {
+      const bodyRows = tableWidget.el.querySelectorAll("tbody tr");
+      rowEl = bodyRows[lineIdx - 2] ?? null;
+    }
+
+    const cellEl = rowEl?.children[colIndex];
+    return cellEl instanceof HTMLElement ? cellEl : null;
   }
 
   private createCardElement(
