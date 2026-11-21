@@ -74,17 +74,20 @@ export default class TrackChangesPlugin extends Plugin {
       return info === view;
     };
 
-    const plugin = this;
+    const { knownViews, sidenotes, app } = this;
+    const onTableCellBlur = () => {
+      this.lastTableCellBlurAt = Date.now();
+    };
     const viewTracker = ViewPlugin.fromClass(
       class {
         private view: EditorView;
 
         constructor(view: EditorView) {
           this.view = view;
-          plugin.knownViews.add(view);
+          knownViews.add(view);
           const info = view.state.field(editorInfoField, false);
           if (info instanceof MarkdownView) {
-            plugin.sidenotes?.scheduleUpdateForView(info);
+            sidenotes?.scheduleUpdateForView(info);
           }
         }
 
@@ -94,7 +97,7 @@ export default class TrackChangesPlugin extends Plugin {
             !update.view.hasFocus &&
             update.view.dom.closest(".cm-table-widget") !== null
           ) {
-            plugin.lastTableCellBlurAt = Date.now();
+            onTableCellBlur();
           }
 
           if (
@@ -108,18 +111,18 @@ export default class TrackChangesPlugin extends Plugin {
           ) {
             const info = update.state.field(editorInfoField, false);
             if (info instanceof MarkdownView) {
-              plugin.sidenotes?.scheduleUpdateForView(info);
+              sidenotes?.scheduleUpdateForView(info);
             } else {
-              const active = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+              const active = app.workspace.getActiveViewOfType(MarkdownView);
               if (active && active.contentEl.contains(update.view.dom)) {
-                plugin.sidenotes?.scheduleUpdateForView(active);
+                sidenotes?.scheduleUpdateForView(active);
               }
             }
           }
         }
 
         destroy() {
-          plugin.knownViews.delete(this.view);
+          knownViews.delete(this.view);
         }
       }
     );
