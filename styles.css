@@ -145,8 +145,8 @@
 }
 
 /* Reserve right margin in .markdown-source-view when natural margin is too narrow */
-.markdown-source-view.tc-reserve-right .cm-sizer {
-  padding-right: 124px !important;
+.workspace-leaf-content .markdown-source-view.mod-cm6.tc-reserve-right .cm-sizer {
+  padding-right: 124px;
 }
 
 /* Right-side sidenote overlay & SVG leader lines */
