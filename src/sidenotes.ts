@@ -34,7 +34,7 @@ interface ViewOverlay {
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const MIN_PANE_WIDTH_FOR_SIDENOTES = 380;
-const MIN_NATURAL_MARGIN = 128;
+const MIN_NATURAL_MARGIN = 120;
 const CARD_GAP = 6;
 
 export class SidenoteManager {
@@ -223,18 +223,24 @@ export class SidenoteManager {
     if (wasReserved) {
       sourceViewEl.classList.remove("tc-reserve-right");
     }
-    const naturalContentRect = cmContent.getBoundingClientRect();
-    const naturalRightSpace = containerRect.right - naturalContentRect.right;
+    const naturalContentRight = this.getContentRightEdge(sourceViewEl, cmContent);
+    const naturalRightSpace = containerRect.right - naturalContentRight;
+
+    const isReadableLine = sourceViewEl.classList.contains("is-readable-line-width");
+    const minMarginToReuse = isReadableLine ? 80 : MIN_NATURAL_MARGIN;
 
     let columnLeft: number;
     let columnWidth: number;
-    if (naturalRightSpace < MIN_NATURAL_MARGIN) {
+    if (naturalRightSpace < minMarginToReuse) {
       sourceViewEl.classList.add("tc-reserve-right");
       columnWidth = 110;
-      columnLeft = Math.max(containerRect.width - columnWidth - 8, 220);
+      columnLeft = Math.max(containerRect.width - columnWidth - 6, 220);
     } else {
-      columnLeft = naturalContentRect.right - containerRect.left + 10;
-      columnWidth = Math.min(130, naturalRightSpace - 18);
+      columnWidth = Math.min(130, naturalRightSpace - 8);
+      columnLeft = Math.max(
+        naturalContentRight - containerRect.left + 4,
+        containerRect.width - columnWidth - 4
+      );
     }
 
     // Collect Live Preview table widget ranges so outer spans inside tables don't use bogus outer coordsAtPos().
@@ -397,7 +403,7 @@ export class SidenoteManager {
     const svgFragment = document.createDocumentFragment();
     for (const item of items) {
       const targetY = (item.cardTop ?? 8) + 12;
-      const elbowX = Math.max(item.anchorX + 6, columnLeft - 8);
+      const elbowX = Math.max(item.anchorX + 4, columnLeft - 5);
       const d = `M ${item.anchorX} ${item.anchorY} L ${elbowX} ${item.anchorY} L ${columnLeft} ${targetY}`;
 
       const path = document.createElementNS(SVG_NS, "path");
@@ -418,6 +424,17 @@ export class SidenoteManager {
       svgFragment.appendChild(dot);
     }
     svgEl.replaceChildren(svgFragment);
+  }
+
+  private getContentRightEdge(sourceViewEl: HTMLElement, cmContent: HTMLElement): number {
+    let maxRight = cmContent.getBoundingClientRect().right;
+    sourceViewEl.querySelectorAll<HTMLElement>(".cm-table-widget").forEach((tableEl) => {
+      const r = tableEl.getBoundingClientRect();
+      if (r.width > 0 && r.right > maxRight) {
+        maxRight = r.right;
+      }
+    });
+    return maxRight;
   }
 
   private findTableCellForSpan(
