@@ -196,4 +196,56 @@ function createState(
   assert.equal(s.doc.toString(), "hello ");
 }
 
-console.log("All 11 Track Changes test suites passed!");
+// 12. Forward delete right before closing `++` jumps outside and deletes next char outside
+{
+  let s = createState("hello ++w++world", 9); // "hello ++w|++world"
+  s = s.update({
+    changes: { from: 9, to: 10, insert: "" },
+    userEvent: "delete.forward",
+  }).state;
+  assert.equal(s.doc.toString(), "hello ++w++%%~~w~~%%orld");
+  assert.equal(s.selection.main.head, 20);
+
+  // Subsequent forward delete merges into the deletion span
+  s = s.update({
+    changes: { from: 20, to: 21, insert: "" },
+    userEvent: "delete.forward",
+  }).state;
+  assert.equal(s.doc.toString(), "hello ++w++%%~~wo~~%%rld");
+  assert.equal(s.selection.main.head, 21);
+}
+
+// 13. Forward delete right before closing `++` at EOF jumps outside without deleting `+`
+{
+  let s = createState("hello ++w++", 9);
+  s = s.update({
+    changes: { from: 9, to: 10, insert: "" },
+    userEvent: "delete.forward",
+  }).state;
+  assert.equal(s.doc.toString(), "hello ++w++");
+  assert.equal(s.selection.main.head, 11);
+}
+
+// 14. Forward delete right before closing `</ins>` jumps outside and deletes next char outside
+{
+  let s = createState("hello <ins>w</ins>world", 12, 12, INS_DELIMITERS);
+  s = s.update({
+    changes: { from: 12, to: 13, insert: "" },
+    userEvent: "delete.forward",
+  }).state;
+  assert.equal(s.doc.toString(), "hello <ins>w</ins>%%~~w~~%%orld");
+  assert.equal(s.selection.main.head, 27);
+}
+
+// 15. Forward delete right before closing `++` followed by `%%~~x~~%%` jumps over without corrupting
+{
+  let s = createState("hello ++w++%%~~x~~%%orld", 9);
+  s = s.update({
+    changes: { from: 9, to: 10, insert: "" },
+    userEvent: "delete.forward",
+  }).state;
+  assert.equal(s.doc.toString(), "hello ++w++%%~~x~~%%orld");
+  assert.equal(s.selection.main.head, 20);
+}
+
+console.log("All 15 Track Changes test suites passed!");

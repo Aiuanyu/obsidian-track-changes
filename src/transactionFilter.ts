@@ -172,6 +172,21 @@ export function createTrackChangesTransactionFilter(
                 annotations: trackChangesIgnore.of(true),
               };
             }
+            // Forward Delete right before closing delimiter (`++abc|++` or `<ins>abc|</ins>`):
+            // jump outside the closing delimiter and delete the next character outside instead.
+            if (isForward && c.fromA >= span.innerTo && c.toA <= span.to) {
+              if (span.to >= docText.length) {
+                return {
+                  selection: EditorSelection.cursor(span.to),
+                  annotations: trackChangesIgnore.of(true),
+                };
+              }
+              const cp = docText.codePointAt(span.to);
+              const charLen = cp !== undefined && cp > 0xffff ? 2 : 1;
+              c.fromA = span.to;
+              c.toA = Math.min(docText.length, span.to + charLen);
+              continue;
+            }
           } else {
             if (isBackward && c.toA === span.to && c.fromA >= span.to - 2) {
               return {
